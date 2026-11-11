@@ -31,13 +31,20 @@ El proyecto evolucionará progresivamente para incorporar:
 
 ## Estado del proyecto
 
-Fase 1: preparación del entorno.
-
-- [x] Crear el directorio del proyecto.
-- [x] Crear la estructura inicial de carpetas.
-- [ ] Configurar Git.
-- [ ] Implementar la aplicación web.
-- [ ] Añadir automatización y monitorización.
+- [x] Crear estructura inicial.
+- [x] Configurar Git.
+- [x] Crear entorno virtual Python.
+- [x] Instalar Flask.
+- [x] Implementar aplicación web inicial.
+- [x] Configurar Pytest.
+- [x] Crear pruebas automatizadas.
+- [x] Separar dependencias de producción y desarrollo.
+- [ ] Mejorar arquitectura de la aplicación.
+- [ ] Ampliar pruebas automatizadas.
+- [ ] Incorporar logging y gestión de errores.
+- [ ] Contenerizar con Docker.
+- [ ] Implementar integración continua.
+- [ ] Explorar despliegue cloud.
 
 ## Seguridad y costes
 

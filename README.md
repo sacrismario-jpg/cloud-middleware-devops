@@ -1,42 +1,46 @@
-# Cloud & Middleware Lab
+# ☁️ Cloud & Middleware Lab
 
-## Objetivo
+Laboratorio práctico de infraestructura IT orientado al aprendizaje y aplicación de tecnologías relacionadas con **Linux, Python, middleware, automatización, monitorización y DevOps**.
 
-Construir un laboratorio práctico de infraestructura IT para aprender administración de sistemas, middleware, automatización, monitorización y fundamentos de DevOps.
+El proyecto evoluciona progresivamente desde una aplicación web local hacia un entorno de infraestructura más completo, incorporando buenas prácticas de desarrollo, administración de sistemas y despliegue.
 
-## Alcance inicial
+## 🎯 Objetivos
 
-La primera versión se ejecutará localmente en Zorin OS, sin dependencias obligatorias de servicios cloud de pago.
+- Desarrollar y administrar aplicaciones web con Python y Flask.
+- Comprender la arquitectura de aplicaciones y sus componentes.
+- Trabajar con servidores web y proxies inversos.
+- Automatizar tareas mediante Bash y Python.
+- Implementar monitorización y análisis de logs.
+- Aplicar control de versiones y pruebas automatizadas.
+- Introducir progresivamente herramientas de contenerización y CI/CD.
+- Explorar posteriormente arquitecturas desplegadas en cloud.
 
-El proyecto evolucionará progresivamente para incorporar:
+## 🛠️ Tecnologías
 
-- Una aplicación web sencilla con Flask.
-- Un servidor web y proxy inverso.
-- Automatización mediante Bash y Python.
-- Control de versiones con Git.
-- Monitorización y análisis de logs.
-- Pruebas automatizadas y fundamentos de CI/CD.
-- Una posible extensión a AWS o Google Cloud Platform.
+| Tecnología | Utilización |
+|---|---|
+| Zorin OS 18.1 | Entorno Linux de desarrollo |
+| Python 3.12 | Desarrollo de aplicaciones y automatización |
+| Flask 3.1.3 | Framework web |
+| Pytest 9.2.0 | Pruebas automatizadas |
+| Git | Control de versiones |
+| GitHub | Repositorio y portfolio técnico |
+| Bash | Automatización en Linux |
 
-## Entorno de desarrollo
+## 🏗️ Arquitectura actual
 
-- Sistema operativo: Zorin OS 18.1.
-- Arquitectura: x86_64.
-- Memoria RAM: 8 GB.
-- Python: 3.12.3.
-- Bash: 5.2.21.
-
-## Arquitectura actual
-
-La aplicación utiliza una estructura modular basada en el patrón Application Factory de Flask y Blueprints.
+La aplicación utiliza una arquitectura modular basada en los patrones **Application Factory** y **Blueprints** de Flask.
 
 ```text
 cloud-middleware-devops/
+│
 ├── app/
 │   ├── __init__.py
 │   └── routes.py
+│
 ├── tests/
 │   └── test_app.py
+│
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
@@ -44,26 +48,47 @@ cloud-middleware-devops/
 └── run.py
 ```
 
-- `app/__init__.py`: crea y configura la aplicación Flask.
-- `app/routes.py`: define las rutas mediante un Blueprint.
-- `run.py`: punto de entrada para iniciar el servidor.
-- `tests/test_app.py`: contiene las pruebas automatizadas.
+### Componentes
 
-## Instalación y ejecución
+- `app/__init__.py`: creación y configuración de la aplicación mediante Application Factory.
+- `app/routes.py`: definición y organización de rutas mediante Blueprint.
+- `run.py`: punto de entrada de la aplicación.
+- `tests/test_app.py`: pruebas automatizadas de la aplicación.
 
-Activar el entorno virtual:
+## 🚀 Instalación y ejecución
+
+### Requisitos
+
+- Linux.
+- Python 3.12 o superior.
+- Git.
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/sacrismario-jpg/cloud-middleware-devops.git
+cd cloud-middleware-devops
+```
+
+### 2. Crear el entorno virtual
+
+```bash
+python3 -m venv .venv
+```
+
+### 3. Activar el entorno virtual
 
 ```bash
 source .venv/bin/activate
 ```
 
-Instalar dependencias:
+### 4. Instalar dependencias
 
 ```bash
 python -m pip install -r requirements-dev.txt
 ```
 
-Iniciar la aplicación:
+### 5. Ejecutar la aplicación
 
 ```bash
 python run.py
@@ -71,11 +96,11 @@ python run.py
 
 La aplicación estará disponible en:
 
-```text
 http://127.0.0.1:5000/
-```
 
-## Pruebas automatizadas
+## 🧪 Pruebas automatizadas
+
+El proyecto utiliza Pytest para comprobar el funcionamiento de la aplicación.
 
 Ejecutar las pruebas:
 
@@ -83,31 +108,35 @@ Ejecutar las pruebas:
 python -m pytest -v
 ```
 
-## Estado del proyecto
+**Estado actual:** 2 pruebas automatizadas superadas.
 
-- [x] Crear estructura inicial.
-- [x] Configurar Git.
-- [x] Crear entorno virtual Python.
-- [x] Instalar Flask.
-- [x] Implementar aplicación web inicial.
-- [x] Configurar Pytest.
-- [x] Crear pruebas automatizadas.
-- [x] Separar dependencias de producción y desarrollo.
-- [x] Mejorar arquitectura mediante Application Factory y Blueprint.
-- [ ] Ampliar pruebas automatizadas.
-- [ ] Incorporar logging y gestión de errores.
-- [ ] Contenerizar con Docker.
-- [ ] Implementar integración continua.
-- [ ] Explorar despliegue cloud.
+- Comprobación de respuesta HTTP 200.
+- Comprobación del contenido de la respuesta.
 
-## Seguridad y costes
+## 📋 Hoja de ruta
 
-El desarrollo inicial se realizará en local.
+| Área | Estado |
+|---|---|
+| Entorno Linux y Python | ✅ Completado |
+| Aplicación web Flask | ✅ Completado |
+| Application Factory y Blueprint | ✅ Completado |
+| Dependencias de desarrollo y producción | ✅ Completado |
+| Pruebas automatizadas iniciales | ✅ Completado |
+| Ampliación de pruebas | 🔄 Pendiente |
+| Logging y gestión de errores | ⏳ Planificado |
+| Servidor web y proxy inverso | ⏳ Planificado |
+| Contenerización con Docker | ⏳ Planificado |
+| Automatización CI/CD | ⏳ Planificado |
+| Despliegue en cloud | ⏳ Futuro |
 
-No se crearán recursos cloud facturables sin revisar previamente los costes y confirmar expresamente su utilización.
+## 🔐 Seguridad y costes
 
-No se deben almacenar contraseñas, tokens ni claves privadas en el repositorio.
+- Desarrollo inicial en entorno local.
+- No se almacenan contraseñas, tokens ni claves privadas en el repositorio.
+- No se crean recursos cloud facturables sin revisar previamente los costes y autorizar su utilización.
 
-## Documentación
+## 📌 Estado del proyecto
 
-La arquitectura, las decisiones técnicas, las pruebas y los procedimientos de resolución de incidencias se documentarán progresivamente en el directorio `docs/`.
+Proyecto en desarrollo.
+
+Repositorio público: [cloud-middleware-devops](https://github.com/sacrismario-jpg/cloud-middleware-devops)

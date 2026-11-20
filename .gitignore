@@ -25,3 +25,4 @@ Thumbs.db
 
 # Caché de Pytest
 .pytest_cache/
+logs/

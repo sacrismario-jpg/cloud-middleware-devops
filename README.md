@@ -2,7 +2,7 @@
 
 Laboratorio práctico de infraestructura IT orientado al aprendizaje y aplicación de tecnologías relacionadas con **Linux, Python, middleware, automatización, monitorización y DevOps**.
 
-El proyecto evoluciona progresivamente desde una aplicación web local hacia un entorno de infraestructura más completo, incorporando buenas prácticas de desarrollo, administración de sistemas, pruebas y despliegue.
+El proyecto evoluciona progresivamente desde una aplicación web local hacia un entorno de infraestructura más completo, incorporando buenas prácticas de desarrollo, administración de sistemas, pruebas automatizadas y despliegue.
 
 ## 🎯 Objetivos
 
@@ -24,7 +24,7 @@ El proyecto evoluciona progresivamente desde una aplicación web local hacia un 
 | Flask 3.1.3 | Framework web |
 | Pytest 9.2.0 | Pruebas automatizadas |
 | pytest-cov 7.1.0 | Medición de cobertura |
-| Coverage 7.17.3 | Análisis de cobertura de código |
+| Coverage 7.17.3 | Análisis de cobertura |
 | Git | Control de versiones |
 | GitHub | Repositorio y portfolio técnico |
 
@@ -42,6 +42,9 @@ cloud-middleware-devops/
 │   ├── config.py
 │   └── routes.py
 │
+├── logs/
+│  
+│
 ├── tests/
 │   └── test_app.py
 │
@@ -52,29 +55,40 @@ cloud-middleware-devops/
 └── run.py
 ```
 
-### Componentes
+### Componentes principales
 
-- `app/__init__.py`: creación de la aplicación mediante Application Factory y carga de configuraciones.
+- `app/__init__.py`: creación de la aplicación mediante Application Factory, configuración del logging y gestión de excepciones.
 - `app/config.py`: configuraciones base, desarrollo y pruebas.
-- `app/routes.py`: definición de rutas mediante Blueprint y endpoint de salud.
+- `app/routes.py`: definición y organización de rutas mediante Blueprint.
 - `run.py`: punto de entrada de la aplicación.
 - `tests/test_app.py`: pruebas automatizadas.
+- `logs/`: almacenamiento de registros de ejecución.
 
-### Configuración de la aplicación
+## ⚙️ Configuración por entornos
 
-Se han implementado tres configuraciones:
+La aplicación dispone de tres configuraciones:
 
 | Entorno | TESTING | DEBUG |
 |---|---|---|
-| Base | False | False |
+| Configuración base | False | False |
 | Testing | True | False |
 | Development | False | True |
 
-La fábrica `create_app()` admite tanto clases de configuración como diccionarios personalizados.
+La fábrica `create_app()` permite utilizar clases de configuración y diccionarios personalizados.
 
-### Endpoint de salud
+Esta arquitectura facilita la separación de los entornos de desarrollo, pruebas y futuras ejecuciones de producción.
 
-La aplicación incorpora un endpoint:
+## 🌐 Endpoints disponibles
+
+### Página principal
+
+```http
+GET /
+```
+
+Devuelve un mensaje de funcionamiento de la aplicación.
+
+### Health Check
 
 ```http
 GET /health
@@ -91,6 +105,30 @@ Respuesta:
 Devuelve HTTP 200 y contenido JSON.
 
 Actualmente es una comprobación básica de disponibilidad HTTP. Todavía no verifica dependencias externas como bases de datos u otros servicios.
+
+## 📋 Logging y gestión de errores
+
+La aplicación incorpora un sistema de registros basado en el módulo estándar `logging` de Python y `RotatingFileHandler`.
+
+Funcionalidades implementadas:
+
+- Registro de inicialización de la aplicación.
+- Registro automático de peticiones HTTP.
+- Identificación del método HTTP, ruta y código de respuesta.
+- Rotación automática de archivos de registro.
+- Tamaño máximo de 10 KB por archivo.
+- Conservación de hasta cinco archivos de respaldo.
+- Registro de excepciones inesperadas.
+- Captura de traceback para facilitar el diagnóstico.
+- Respuestas JSON para errores internos HTTP 500.
+- Conservación de los códigos HTTP correspondientes a errores 404 y 405.
+- Exclusión del manejador de archivo cuando la aplicación se crea en modo testing.
+
+Los registros se almacenan en:
+
+```text
+logs/app.log
+```
 
 ## 🚀 Instalación y ejecución
 
@@ -135,6 +173,8 @@ La aplicación estará disponible en:
 
 http://127.0.0.1:5000/
 
+El servidor integrado de Flask se utiliza exclusivamente para desarrollo local. No está destinado a producción.
+
 ## 🧪 Pruebas automatizadas
 
 El proyecto utiliza Pytest para comprobar el funcionamiento de la aplicación.
@@ -151,20 +191,24 @@ Medir la cobertura:
 python -m pytest --cov=app --cov-report=term-missing
 ```
 
-**Estado actual: 13 pruebas superadas y 100 % de cobertura del paquete `app`.**
+**Estado actual:**
+
+- 14 pruebas automatizadas superadas.
+- 100 % de cobertura del paquete `app`.
 
 Las pruebas verifican:
 
-- Respuesta HTTP 200 de la página principal.
-- Contenido de la respuesta.
-- Respuesta HTTP 405 ante métodos no permitidos.
-- Respuesta HTTP 404 para rutas inexistentes.
-- Comportamiento del método HEAD.
-- Tipo de contenido HTML.
+- Respuestas HTTP de la página principal.
+- Contenido de las respuestas.
+- Métodos HTTP permitidos y no permitidos.
+- Respuestas HTTP 404 y 405.
+- Funcionamiento del método HEAD.
+- Tipos de contenido HTML y JSON.
 - Funcionamiento del endpoint `/health`.
-- Respuesta JSON y tipo de contenido del endpoint.
-- Configuración personalizada.
 - Configuraciones base, testing y development.
+- Aplicación de configuraciones personalizadas.
+- Gestión de excepciones inesperadas.
+- Respuestas HTTP 500.
 
 La cobertura del 100 % corresponde a las instrucciones ejecutables del código actual. No implica que se hayan probado todos los escenarios posibles.
 
@@ -177,10 +221,14 @@ La cobertura del 100 % corresponde a las instrucciones ejecutables del código a
 | Application Factory y Blueprint | ✅ Completado |
 | Configuración por entornos | ✅ Completado |
 | Endpoint básico de salud | ✅ Completado |
-| Dependencias de desarrollo | ✅ Completado |
-| Pruebas automatizadas | ✅ 13 pruebas superadas |
+| Logging con rotación | ✅ Completado |
+| Registro de peticiones HTTP | ✅ Completado |
+| Gestión global de excepciones | ✅ Completado |
+| Pruebas automatizadas | ✅ 14 superadas |
 | Medición de cobertura | ✅ 100 % |
-| Logging y gestión de errores | ⏳ Planificado |
+| Logging específico para testing | 🔄 Implementación inicial |
+| Logging estructurado | ⏳ Planificado |
+| Gestión avanzada de errores | ⏳ Planificado |
 | Servidor web y proxy inverso | ⏳ Planificado |
 | Contenerización con Docker | ⏳ Planificado |
 | Automatización CI/CD | ⏳ Planificado |
@@ -197,4 +245,6 @@ La cobertura del 100 % corresponde a las instrucciones ejecutables del código a
 
 Proyecto en desarrollo.
 
-Repositorio público: https://github.com/sacrismario-jpg/cloud-middleware-devops
+Repositorio público:
+
+https://github.com/sacrismario-jpg/cloud-middleware-devops

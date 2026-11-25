@@ -248,3 +248,77 @@ Proyecto en desarrollo.
 Repositorio público:
 
 https://github.com/sacrismario-jpg/cloud-middleware-devops
+
+## Servidor WSGI con Gunicorn
+
+El proyecto incorpora **Gunicorn** como servidor WSGI para ejecutar la aplicación Flask en un entorno distinto al servidor de desarrollo integrado de Flask.
+
+### Instalación
+
+Gunicorn está incluido en `requirements.txt`.
+
+Para instalar las dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Configuración
+
+Los parámetros del servidor se encuentran en `gunicorn.conf.py`:
+
+```python
+bind = "127.0.0.1:8000"
+
+workers = 2
+
+accesslog = "-"
+errorlog = "-"
+loglevel = "info"
+
+capture_output = True
+```
+
+Configuración utilizada:
+
+- **bind:** escucha en la interfaz local, puerto 8000.
+- **workers:** utiliza dos procesos de trabajo.
+- **accesslog:** envía los registros de acceso a la salida estándar.
+- **errorlog:** envía los registros de errores a la salida de error estándar.
+- **loglevel:** establece el nivel de registro informativo.
+- **capture_output:** redirige la salida de la aplicación a los registros de errores de Gunicorn.
+
+### Ejecución
+
+Para iniciar la aplicación con Gunicorn:
+
+```bash
+gunicorn --config gunicorn.conf.py "app:create_app()"
+```
+
+La aplicación queda disponible localmente en:
+
+```text
+http://127.0.0.1:8000
+```
+
+Para comprobar su funcionamiento:
+
+```bash
+curl -i http://127.0.0.1:8000/health
+```
+
+La respuesta esperada es HTTP 200:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+### Diferencia entre Flask y Gunicorn
+
+- `python run.py`: inicia el servidor de desarrollo integrado de Flask.
+- `gunicorn --config gunicorn.conf.py "app:create_app()"`: ejecuta la aplicación mediante un servidor WSGI.
+
+El servidor integrado de Flask se utiliza para desarrollo y pruebas. Gunicorn permite ejecutar la aplicación mediante un servidor WSGI, aunque para un despliegue público todavía habría que configurar aspectos adicionales, como un proxy inverso, HTTPS y controles de seguridad.

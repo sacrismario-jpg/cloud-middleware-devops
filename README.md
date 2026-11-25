@@ -220,19 +220,20 @@ La cobertura del 100 % corresponde a las instrucciones ejecutables del código a
 | Aplicación web Flask | ✅ Completado |
 | Application Factory y Blueprint | ✅ Completado |
 | Configuración por entornos | ✅ Completado |
-| Endpoint básico de salud | ✅ Completado |
-| Logging con rotación | ✅ Completado |
+| Endpoint básico de salud (`/health`) | ✅ Completado |
+| Logging con rotación de archivos | ✅ Completado |
 | Registro de peticiones HTTP | ✅ Completado |
 | Gestión global de excepciones | ✅ Completado |
+| Servidor WSGI Gunicorn | ✅ Completado |
 | Pruebas automatizadas | ✅ 14 superadas |
 | Medición de cobertura | ✅ 100 % |
-| Logging específico para testing | 🔄 Implementación inicial |
-| Logging estructurado | ⏳ Planificado |
+| Aislamiento del logging en pruebas | 🔄 Implementación inicial |
+| Logging estructurado (JSON) | ⏳ Planificado |
 | Gestión avanzada de errores | ⏳ Planificado |
-| Servidor web y proxy inverso | ⏳ Planificado |
+| Proxy inverso con Nginx | ⏳ Planificado |
 | Contenerización con Docker | ⏳ Planificado |
 | Automatización CI/CD | ⏳ Planificado |
-| Despliegue en cloud | ⏳ Futuro |
+| Despliegue en la nube | 🔮 Futuro |
 
 ## 🔐 Seguridad y costes
 

@@ -24,7 +24,7 @@ El proyecto evoluciona progresivamente desde una aplicación web local hacia un 
 | Flask 3.1.3 | Framework web |
 | Gunicorn 27.0.1 | Servidor WSGI |
 | Nginx | Proxy inverso |
-| systemd | Gestión del servicio |
+| systemd | Gestión y supervisión del servicio |
 | Pytest 9.2.0 | Pruebas automatizadas |
 | pytest-cov 7.1.0 | Medición de cobertura |
 | Coverage 7.17.3 | Análisis de cobertura |
@@ -45,13 +45,13 @@ cloud-middleware-devops/
 │   ├── config.py
 │   └── routes.py
 │
-├── logs/
+├── tests/
+│   └── test_app.py
+│
+├── logs/                  # Registros generados en ejecución
 │   ├── app.log
 │   ├── gunicorn-access.log
 │   └── gunicorn-error.log
-│
-├── tests/
-│   └── test_app.py
 │
 ├── gunicorn.conf.py
 ├── run.py
@@ -241,7 +241,7 @@ Gunicorn está incluido en `requirements.txt`.
 Para instalar las dependencias:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ### Configuración
@@ -253,79 +253,39 @@ bind = "127.0.0.1:8000"
 
 workers = 2
 
-accesslog = "/home/mario/proyectos/cloud-middleware-devops/logs/gunicorn-access.log"
-errorlog = "/home/mario/proyectos/cloud-middleware-devops/logs/gunicorn-error.log"
+accesslog = "logs/gunicorn-access.log"
+errorlog = "logs/gunicorn-error.log"
 
 loglevel = "info"
 
 capture_output = True
 ```
 
-Configuración utilizada:
+Características principales:
 
-- **bind:** escucha en la interfaz local, puerto 8000.
-- **workers:** utiliza dos procesos de trabajo.
-- **accesslog:** almacena los registros de acceso en un archivo.
-- **errorlog:** almacena los registros de errores en un archivo.
-- **loglevel:** establece el nivel de registro informativo.
-- **capture_output:** redirige la salida de la aplicación a los registros de errores de Gunicorn.
+- Dos procesos worker.
+- Escucha en la interfaz local `127.0.0.1`.
+- Puerto 8000.
+- Registro independiente de accesos y errores.
+- Captura de la salida estándar y de errores.
 
-### Ejecución
-
-Para iniciar la aplicación con Gunicorn:
+### Ejecución manual
 
 ```bash
 gunicorn --config gunicorn.conf.py "app:create_app()"
 ```
 
-La aplicación queda disponible localmente en:
+Gunicorn utiliza la Application Factory de Flask para crear la instancia de la aplicación.
 
-```text
-http://127.0.0.1:8000
-```
+## 🌐 Nginx como proxy inverso
 
-Para comprobar su funcionamiento:
+Se ha instalado y configurado **Nginx** como servidor web y proxy inverso.
 
-```bash
-curl -i http://127.0.0.1:8000/health
-```
-
-La respuesta esperada es HTTP 200 con el estado `ok`.
-
-## 🌍 Proxy inverso con Nginx
-
-El laboratorio incorpora **Nginx** como proxy inverso situado delante de Gunicorn.
-
-Nginx recibe las peticiones HTTP y las reenvía al servidor WSGI, que ejecuta la aplicación Flask.
-
-### Arquitectura de comunicación
-
-```text
-         CLIENTE
-            |
-            | HTTP :80
-            v
-        NGINX
-     Proxy inverso
-            |
-            | HTTP :8000
-            v
-       GUNICORN
-       2 workers
-            |
-            v
-         FLASK
-      Application
-         Factory
-            |
-            v
-       ENDPOINTS
-       / y /health
-```
+La arquitectura permite recibir las peticiones HTTP en el puerto 80 y reenviarlas a Gunicorn, que escucha en el puerto 8000 de la interfaz local.
 
 ### Configuración
 
-Archivo de configuración:
+Archivo:
 
 ```text
 /etc/nginx/sites-available/cloud-middleware-lab
@@ -349,37 +309,33 @@ server {
 }
 ```
 
-La configuración se habilita mediante un enlace simbólico en:
+El sitio se habilita mediante un enlace simbólico en:
 
 ```text
-/etc/nginx/sites-enabled/cloud-middleware-lab
+/etc/nginx/sites-enabled/
 ```
 
-### Comprobación
+### Validación
 
-Validar la configuración:
+Comprobar la sintaxis:
 
 ```bash
 sudo nginx -t
 ```
 
-Recargar Nginx:
+Recargar la configuración:
 
 ```bash
 sudo systemctl reload nginx
 ```
 
-Comprobar el endpoint a través del proxy:
+Comprobar el endpoint:
 
 ```bash
 curl -i http://127.0.0.1/health
 ```
 
-Respuesta esperada:
-
-```http
-HTTP/1.1 200 OK
-```
+La respuesta esperada es HTTP 200:
 
 ```json
 {
@@ -387,15 +343,9 @@ HTTP/1.1 200 OK
 }
 ```
 
-**Estado:** Nginx está instalado y activo. La comunicación entre Nginx, Gunicorn y Flask ha sido comprobada satisfactoriamente.
-
 ## ⚙️ Gestión del servicio con systemd
 
-El laboratorio incorpora un servicio de **systemd** para gestionar la ejecución de Gunicorn como servicio del sistema.
-
-Esto permite iniciar la aplicación sin necesidad de ejecutar manualmente Gunicorn desde una terminal.
-
-### Configuración del servicio
+Se ha configurado un servicio de **systemd** para gestionar Gunicorn como un servicio del sistema.
 
 Archivo:
 
@@ -403,14 +353,26 @@ Archivo:
 /etc/systemd/system/cloud-middleware-lab.service
 ```
 
-El servicio utiliza:
+Configuración principal:
 
-- Usuario dedicado: `cloudlab`.
-- Grupo: `cloudlab`.
-- Directorio de trabajo: `/home/mario/proyectos/cloud-middleware-devops`.
-- Ejecución de Gunicorn desde el entorno virtual del proyecto.
-- Reinicio automático ante la finalización del proceso.
-- Inicio automático durante el arranque del sistema.
+```ini
+[Unit]
+Description=Cloud Middleware Lab - Gunicorn
+After=network.target
+
+[Service]
+User=cloudlab
+Group=cloudlab
+WorkingDirectory=/home/mario/proyectos/cloud-middleware-devops
+
+ExecStart=/home/mario/proyectos/cloud-middleware-devops/.venv/bin/gunicorn --config /home/mario/proyectos/cloud-middleware-devops/gunicorn.conf.py "app:create_app()"
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
 
 ### Gestión del servicio
 
@@ -420,7 +382,7 @@ Recargar la configuración de systemd:
 sudo systemctl daemon-reload
 ```
 
-Habilitar e iniciar el servicio:
+Iniciar y habilitar el servicio:
 
 ```bash
 sudo systemctl enable --now cloud-middleware-lab
@@ -429,19 +391,19 @@ sudo systemctl enable --now cloud-middleware-lab
 Consultar su estado:
 
 ```bash
-sudo systemctl status cloud-middleware-lab --no-pager
+sudo systemctl status cloud-middleware-lab
 ```
 
-Detener el servicio:
-
-```bash
-sudo systemctl stop cloud-middleware-lab
-```
-
-Reiniciar el servicio:
+Reiniciar:
 
 ```bash
 sudo systemctl restart cloud-middleware-lab
+```
+
+Detener:
+
+```bash
+sudo systemctl stop cloud-middleware-lab
 ```
 
 Consultar los registros:
@@ -450,73 +412,172 @@ Consultar los registros:
 sudo journalctl -u cloud-middleware-lab
 ```
 
-Seguir los registros en tiempo real:
+El servicio está configurado para iniciarse automáticamente con el sistema y reiniciarse si se produce un fallo.
 
-```bash
-sudo journalctl -u cloud-middleware-lab -f
-```
+## 🔐 Seguridad y permisos
 
-### Estado actual
+Se han aplicado medidas de aislamiento y endurecimiento del servicio para reducir los privilegios y limitar el acceso a los recursos del sistema.
 
-El servicio se encuentra habilitado y funcionando:
+### Usuario dedicado
+
+La aplicación se ejecuta mediante un usuario específico:
 
 ```text
-cloud-middleware-lab.service
-Active: active (running)
-Loaded: loaded
-enabled
+cloudlab
 ```
 
-La ejecución se realiza mediante el usuario dedicado `cloudlab`, en lugar del usuario personal `mario`.
+Este usuario evita ejecutar Gunicorn con la cuenta personal o con privilegios de root.
 
-## 🔐 Seguridad y costes
+Se han configurado los permisos necesarios para que el servicio pueda:
 
-- Desarrollo y despliegue inicial en entorno local.
-- Gunicorn escucha exclusivamente en la interfaz local `127.0.0.1:8000`.
-- Nginx recibe las peticiones en el puerto 80.
-- El servicio Gunicorn se ejecuta mediante un usuario dedicado.
-- No se almacenan contraseñas, tokens ni claves privadas en el repositorio.
-- El servidor integrado de Flask no está destinado a producción.
-- El laboratorio no dispone todavía de HTTPS ni de una configuración completa de seguridad para exposición pública.
-- No se crean recursos cloud facturables sin revisar previamente los costes y autorizar su utilización.
+- Leer el código de la aplicación.
+- Acceder a la configuración de Gunicorn.
+- Ejecutar el binario del entorno virtual.
+- Escribir en el directorio de registros.
 
-**Importante:** la configuración actual está destinada a un laboratorio local. No debe considerarse un despliegue preparado para exposición pública.
+### Endurecimiento de systemd
 
-## 📋 Hoja de ruta
+Se han aplicado directivas de seguridad adicionales mediante un archivo de configuración complementario:
+
+```text
+/etc/systemd/system/cloud-middleware-lab.service.d/override.conf
+```
+
+Entre las medidas aplicadas se encuentran:
+
+- `NoNewPrivileges`: impide adquirir nuevos privilegios.
+- `UMask`: controla los permisos predeterminados de los archivos creados por el servicio.
+- `PrivateTmp`: proporciona un directorio temporal aislado.
+- `ProtectSystem=full`: restringe la escritura en partes del sistema de archivos.
+- `ProtectKernelTunables`: protege los parámetros del kernel.
+- `ProtectKernelModules`: impide cargar módulos del kernel.
+- `ProtectKernelLogs`: restringe el acceso a los registros del kernel.
+- `ProtectControlGroups`: protege la jerarquía de grupos de control.
+- `ProtectHostname`: impide modificar el nombre del sistema.
+- `ProtectClock`: impide modificar el reloj del sistema.
+- `RestrictSUIDSGID`: restringe la creación de archivos SUID/SGID.
+- `LockPersonality`: restringe los cambios de personalidad del proceso.
+- `PrivateDevices`: limita el acceso a dispositivos.
+- `ProtectProc`: restringe la visibilidad del árbol de procesos.
+- `ProcSubset`: limita la información disponible en `/proc`.
+- `RestrictNamespaces`: limita la creación de espacios de nombres.
+- `RestrictRealtime`: restringe el acceso a la planificación en tiempo real.
+- `SystemCallArchitectures`: limita las arquitecturas de llamadas al sistema permitidas.
+- `CapabilityBoundingSet`: elimina las capacidades adicionales del servicio.
+- `AmbientCapabilities`: no concede capacidades adicionales.
+- `RestrictAddressFamilies`: limita las familias de direcciones de red permitidas.
+- `MemoryDenyWriteExecute`: restringe la creación de memoria ejecutable y escribible simultáneamente.
+
+### Evaluación de seguridad
+
+La configuración se ha evaluado mediante:
+
+```bash
+sudo systemd-analyze security cloud-middleware-lab.service
+```
+
+Resultado obtenido:
+
+- Nivel de exposición: **3.1 OK**.
+
+Esta puntuación corresponde a la evaluación de systemd y no constituye una auditoría completa de seguridad de la aplicación o del sistema.
+
+## 🔄 Arquitectura del despliegue
+
+El flujo de una petición HTTP es el siguiente:
+
+```text
+          CLIENTE
+             |
+             | HTTP :80
+             v
+       +-----------+
+       |   NGINX   |
+       |  Proxy    |
+       |  inverso  |
+       +-----------+
+             |
+             | HTTP
+             | 127.0.0.1:8000
+             v
+       +-----------+
+       | GUNICORN  |
+       | WSGI      |
+       | 2 workers |
+       +-----------+
+             |
+             v
+       +-----------+
+       |   FLASK   |
+       | Aplicación|
+       +-----------+
+             |
+             v
+       +-----------+
+       |  ENDPOINT |
+       | /health   |
+       +-----------+
+```
+
+**Responsabilidades de cada componente:**
+
+| Componente | Responsabilidad |
+|---|---|
+| Nginx | Recepción de peticiones HTTP y proxy inverso |
+| Gunicorn | Servidor WSGI y gestión de procesos worker |
+| Flask | Lógica y rutas de la aplicación |
+| systemd | Gestión, supervisión y arranque del servicio |
+| Logging | Registro de actividad y errores |
+
+El despliegue se ha validado tanto mediante una conexión directa a Gunicorn como a través de Nginx.
+
+## 📊 Estado actual del proyecto
 
 | Área | Estado |
 |---|---|
 | Entorno Linux y Python | ✅ Completado |
-| Aplicación web Flask | ✅ Completado |
-| Application Factory y Blueprint | ✅ Completado |
+| Entorno virtual | ✅ Completado |
+| Aplicación Flask | ✅ Completado |
+| Application Factory y Blueprints | ✅ Completado |
 | Configuración por entornos | ✅ Completado |
-| Endpoint básico de salud (`/health`) | ✅ Completado |
-| Logging con rotación de archivos | ✅ Completado |
-| Registro de peticiones HTTP | ✅ Completado |
+| Endpoint Health Check | ✅ Completado |
+| Logging y rotación de registros | ✅ Completado |
 | Gestión global de excepciones | ✅ Completado |
-| Pruebas automatizadas | ✅ 14 superadas |
-| Medición de cobertura | ✅ 100 % |
+| Pruebas automatizadas | ✅ Completado |
 | Servidor WSGI Gunicorn | ✅ Completado |
-| Proxy inverso con Nginx | ✅ Completado |
-| Gestión del servicio con systemd | ✅ Completado |
-| Ejecución con usuario dedicado | ✅ Completado |
-| Aislamiento del logging en pruebas | 🔄 Implementación inicial |
-| Logging estructurado (JSON) | ⏳ Planificado |
-| Gestión avanzada de errores | ⏳ Planificado |
-| HTTPS y endurecimiento de seguridad | ⏳ Planificado |
-| Monitorización de infraestructura | ⏳ Planificado |
-| Contenerización con Docker | ⏳ Planificado |
-| Automatización CI/CD | ⏳ Planificado |
-| Despliegue en la nube | 🔮 Futuro |
+| Proxy inverso Nginx | ✅ Completado |
+| Servicio systemd | ✅ Completado |
+| Usuario dedicado | ✅ Completado |
+| Endurecimiento de systemd | ✅ Completado |
+| Validación del despliegue | ✅ Completado |
 
-## 📌 Estado del proyecto
+## 🗺️ Hoja de ruta
 
-Proyecto en desarrollo.
+El proyecto continuará evolucionando progresivamente:
 
-Actualmente dispone de una aplicación Flask funcional, pruebas automatizadas, servidor WSGI Gunicorn, proxy inverso Nginx y gestión del servicio mediante systemd.
+| Área | Estado |
+|---|---|
+| Entorno Linux y Python | ✅ Completado |
+| Aplicación Flask modular | ✅ Completado |
+| Pruebas automatizadas y cobertura | ✅ Completado |
+| Logging y gestión de excepciones | ✅ Completado |
+| Gunicorn como servidor WSGI | ✅ Completado |
+| Nginx como proxy inverso | ✅ Completado |
+| Gestión mediante systemd | ✅ Completado |
+| Endurecimiento del servicio | ✅ Completado |
+| Logging estructurado en JSON | ⏳ Pendiente |
+| Mejoras de monitorización | ⏳ Pendiente |
+| Contenerización con Docker | ⏳ Pendiente |
+| Integración y despliegue continuo (CI/CD) | ⏳ Pendiente |
+| Automatización con Bash y Python | ⏳ Pendiente |
+| Despliegue en cloud | 🔜 Futuro |
 
-La arquitectura permite ejecutar el laboratorio como un servicio local persistente y constituye una base para continuar trabajando en administración de sistemas, middleware, monitorización y DevOps.
+## 📚 Objetivo profesional
 
-Repositorio público:
+Este laboratorio forma parte de un itinerario práctico de aprendizaje orientado a la administración de sistemas, infraestructura IT, middleware y tecnologías DevOps.
 
-https://github.com/sacrismario-jpg/cloud-middleware-devops
+El objetivo es documentar y demostrar conocimientos mediante implementaciones funcionales, configuración de servicios, resolución de problemas y aplicación de buenas prácticas.
+
+## 📄 Licencia
+
+Este proyecto se distribuye bajo licencia MIT.

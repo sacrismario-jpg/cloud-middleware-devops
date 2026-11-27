@@ -1,18 +1,21 @@
 # ☁️ Cloud & Middleware Lab
 
-Laboratorio práctico de infraestructura IT orientado al aprendizaje y aplicación de tecnologías relacionadas con **Linux, Python, middleware, automatización, monitorización y DevOps**.
+Laboratorio práctico de infraestructura IT orientado al aprendizaje y aplicación de tecnologías relacionadas con **Linux, Python, middleware, automatización, monitorización, contenerización y DevOps**.
 
-El proyecto evoluciona progresivamente desde una aplicación web local hacia un entorno de infraestructura más completo, incorporando buenas prácticas de desarrollo, administración de sistemas, pruebas automatizadas y despliegue.
+El proyecto evoluciona desde una aplicación web local hasta un entorno de despliegue contenerizado, incorporando buenas prácticas de desarrollo, administración de sistemas, seguridad, pruebas automatizadas e integración continua.
 
 ## 🎯 Objetivos
 
 - Desarrollar y administrar aplicaciones web con Python y Flask.
 - Comprender la arquitectura de aplicaciones y sus componentes.
-- Trabajar con servidores web y proxies inversos.
-- Automatizar tareas mediante Bash y Python.
-- Implementar monitorización y análisis de logs.
-- Aplicar control de versiones y pruebas automatizadas.
-- Introducir herramientas de contenerización y CI/CD.
+- Trabajar con servidores WSGI y proxies inversos.
+- Administrar servicios Linux mediante systemd.
+- Implementar logging estructurado y gestión de errores.
+- Automatizar pruebas y comprobar la cobertura del código.
+- Contenerizar aplicaciones mediante Docker.
+- Gestionar servicios y redes con Docker Compose.
+- Aplicar medidas de seguridad y aislamiento en contenedores.
+- Implementar integración continua mediante GitHub Actions.
 - Explorar posteriormente arquitecturas desplegadas en cloud.
 
 ## 🛠️ Tecnologías
@@ -20,22 +23,64 @@ El proyecto evoluciona progresivamente desde una aplicación web local hacia un 
 | Tecnología | Utilización |
 |---|---|
 | Zorin OS 18.1 | Entorno Linux de desarrollo |
-| Python 3.12.3 | Desarrollo de aplicaciones y automatización |
+| Python 3.12 | Desarrollo de aplicaciones y automatización |
 | Flask 3.1.3 | Framework web |
 | Gunicorn 27.0.1 | Servidor WSGI |
 | Nginx | Proxy inverso |
-| systemd | Gestión y supervisión del servicio |
+| systemd | Gestión y supervisión de servicios |
+| Docker Engine | Contenerización |
+| Docker Compose | Orquestación de contenedores |
 | Pytest 9.2.0 | Pruebas automatizadas |
 | pytest-cov 7.1.0 | Medición de cobertura |
-| Coverage 7.17.3 | Análisis de cobertura |
 | Git | Control de versiones |
 | GitHub | Repositorio y portfolio técnico |
+| GitHub Actions | Integración continua |
+| Linux | Administración del entorno |
 
-Bash está contemplado para futuras tareas de automatización.
-
-## 🏗️ Arquitectura actual
+## 🏗️ Arquitectura del proyecto
 
 La aplicación utiliza una arquitectura modular basada en los patrones **Application Factory** y **Blueprints** de Flask.
+
+La infraestructura dispone de dos modalidades de ejecución:
+
+1. Despliegue tradicional sobre Linux mediante Gunicorn, Nginx y systemd.
+2. Despliegue contenerizado mediante Docker Compose.
+
+### Arquitectura Docker Compose
+
+```text
+                  CLIENTE
+                     |
+                     | HTTP
+                     v
+          +----------------------+
+          |        NGINX         |
+          |  Reverse Proxy       |
+          |  Puerto 8080         |
+          |  Usuario no root     |
+          +----------------------+
+                     |
+                     | Red interna Docker
+                     | app:8000
+                     v
+          +----------------------+
+          |       GUNICORN       |
+          |      2 workers       |
+          |                      |
+          |       FLASK          |
+          |   Aplicación web     |
+          +----------------------+
+                     |
+                     v
+              /health
+              /ready
+```
+
+Nginx recibe las peticiones HTTP y las reenvía a Gunicorn mediante la red interna de Docker.
+
+El servicio Flask no publica directamente ningún puerto en el host. El acceso se realiza a través del proxy inverso.
+
+### Estructura del repositorio
 
 ```text
 cloud-middleware-devops/
@@ -48,12 +93,19 @@ cloud-middleware-devops/
 ├── tests/
 │   └── test_app.py
 │
-├── logs/                  # Registros generados en ejecución
-│   ├── app.log
-│   ├── gunicorn-access.log
-│   └── gunicorn-error.log
+├── docker/
+│   └── nginx/
+│       └── default.conf
 │
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+│
+├── Dockerfile
+├── compose.yaml
+├── .dockerignore
 ├── gunicorn.conf.py
+├── gunicorn.docker.conf.py
 ├── run.py
 ├── requirements.txt
 ├── requirements-dev.txt
@@ -61,19 +113,21 @@ cloud-middleware-devops/
 └── README.md
 ```
 
-La configuración de Nginx y el servicio systemd se encuentran en sus ubicaciones correspondientes dentro del sistema operativo, fuera del repositorio.
-
 ### Componentes principales
 
-- `app/__init__.py`: creación de la aplicación mediante Application Factory, configuración del logging y gestión de excepciones.
+- `app/__init__.py`: Application Factory, configuración del logging, identificación de peticiones y gestión de excepciones.
 - `app/config.py`: configuraciones base, desarrollo y pruebas.
-- `app/routes.py`: definición y organización de rutas mediante Blueprint.
-- `run.py`: punto de entrada de la aplicación.
+- `app/routes.py`: definición de rutas mediante Blueprint.
 - `tests/test_app.py`: pruebas automatizadas.
-- `gunicorn.conf.py`: configuración del servidor WSGI.
-- `logs/`: almacenamiento de registros de ejecución.
+- `Dockerfile`: construcción de la imagen de la aplicación.
+- `compose.yaml`: definición y configuración de los servicios Docker.
+- `docker/nginx/default.conf`: configuración del proxy inverso.
+- `gunicorn.conf.py`: configuración de Gunicorn para el despliegue tradicional.
+- `gunicorn.docker.conf.py`: configuración de Gunicorn para Docker.
+- `.github/workflows/ci.yml`: pipeline de integración continua.
+- `.dockerignore`: exclusión de archivos innecesarios durante la construcción de imágenes.
 
-## ⚙️ Configuración por entornos
+## ⚙️ Configuración de la aplicación
 
 La aplicación dispone de tres configuraciones:
 
@@ -85,7 +139,7 @@ La aplicación dispone de tres configuraciones:
 
 La fábrica `create_app()` permite utilizar clases de configuración y diccionarios personalizados.
 
-Esta arquitectura facilita la separación de los entornos de desarrollo, pruebas y futuras ejecuciones de producción.
+Esta arquitectura facilita la separación de los entornos de desarrollo, pruebas y ejecución del servicio.
 
 ## 🌐 Endpoints disponibles
 
@@ -111,241 +165,220 @@ Respuesta:
 }
 ```
 
-Devuelve HTTP 200 y contenido JSON.
+Devuelve HTTP 200 y comprueba que la aplicación responde a las peticiones.
 
-Actualmente es una comprobación básica de disponibilidad HTTP. Todavía no verifica dependencias externas como bases de datos u otros servicios.
+### Readiness Check
+
+```http
+GET /ready
+```
+
+Respuesta:
+
+```json
+{
+  "status": "ready"
+}
+```
+
+Devuelve HTTP 200 e indica que la aplicación está preparada para atender peticiones.
+
+Actualmente ambos endpoints realizan comprobaciones básicas de la aplicación. No verifican dependencias externas como bases de datos u otros servicios.
 
 ## 📋 Logging y gestión de errores
 
-La aplicación incorpora un sistema de registros basado en el módulo estándar `logging` de Python y `RotatingFileHandler`.
+La aplicación utiliza el módulo estándar `logging` de Python y un formateador personalizado `JSONFormatter`.
 
-Funcionalidades implementadas:
+### Funcionalidades implementadas
 
 - Registro de inicialización de la aplicación.
 - Registro automático de peticiones HTTP.
 - Identificación del método HTTP, ruta y código de respuesta.
-- Rotación automática de archivos de registro.
-- Tamaño máximo de 10 KB por archivo.
-- Conservación de hasta cinco archivos de respaldo.
+- Identificador único por petición mediante UUID.
+- Inclusión de `X-Request-ID` en las respuestas HTTP.
 - Registro de excepciones inesperadas.
-- Captura de traceback para facilitar el diagnóstico.
+- Captura de información de diagnóstico.
 - Respuestas JSON para errores internos HTTP 500.
 - Conservación de los códigos HTTP correspondientes a errores 404 y 405.
-- Exclusión del manejador de archivo cuando la aplicación se crea en modo testing.
+- Rotación automática de archivos de registro en el despliegue tradicional.
+- Salida de registros por stdout en el despliegue contenerizado.
 
-Los registros de la aplicación Flask se almacenan en:
+### Formato JSON
+
+Los registros estructurados pueden incluir:
+
+- Timestamp UTC.
+- Nivel del registro.
+- Nombre del logger.
+- Mensaje.
+- Módulo y función.
+- Número de línea.
+- Identificador de petición.
+- Método HTTP.
+- Ruta.
+- Código de respuesta.
+- Información de excepciones.
+
+### Modos de logging
+
+**Despliegue tradicional:**
+
+Se utiliza `RotatingFileHandler` con un tamaño máximo de 10 KB y hasta cinco archivos de respaldo.
+
+Los registros se almacenan en:
 
 ```text
 logs/app.log
 ```
 
-Gunicorn dispone de archivos independientes para sus registros de acceso y errores:
+Gunicorn dispone de archivos independientes:
 
 ```text
 logs/gunicorn-access.log
 logs/gunicorn-error.log
 ```
 
-## 🚀 Instalación y ejecución
+**Despliegue Docker:**
 
-### Requisitos
-
-- Linux.
-- Python 3.12 o superior.
-- Git.
-
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/sacrismario-jpg/cloud-middleware-devops.git
-cd cloud-middleware-devops
-```
-
-### 2. Crear el entorno virtual
-
-```bash
-python3 -m venv .venv
-```
-
-### 3. Activar el entorno virtual
-
-```bash
-source .venv/bin/activate
-```
-
-### 4. Instalar dependencias
-
-```bash
-python -m pip install -r requirements-dev.txt
-```
-
-### 5. Ejecutar la aplicación
-
-```bash
-python run.py
-```
-
-La aplicación estará disponible en:
+Se utiliza la variable de entorno:
 
 ```text
-http://127.0.0.1:5000/
+LOG_TO_STDOUT=1
 ```
 
-El servidor integrado de Flask se utiliza exclusivamente para desarrollo local. No está destinado a producción.
+Los registros se envían a la salida estándar para facilitar su consulta mediante Docker.
 
 ## 🧪 Pruebas automatizadas
 
-El proyecto utiliza Pytest para comprobar el funcionamiento de la aplicación.
+El proyecto utiliza Pytest y pytest-cov para verificar el funcionamiento de la aplicación y medir la cobertura del código.
 
-Ejecutar las pruebas:
+### Ejecutar las pruebas
 
 ```bash
 python -m pytest -v
 ```
 
-Medir la cobertura:
+### Medir la cobertura
 
 ```bash
-python -m pytest --cov=app --cov-report=term-missing
+python -m pytest \
+  --cov=app \
+  --cov-report=term-missing
 ```
 
-**Estado actual:**
+### Validar el umbral mínimo de cobertura
 
-- 14 pruebas automatizadas superadas.
-- 100 % de cobertura del paquete `app`.
+```bash
+python -m pytest \
+  --cov=app \
+  --cov-report=term-missing \
+  --cov-fail-under=100
+```
+
+### Estado actual
+
+- **19 pruebas automatizadas superadas.**
+- **100 % de cobertura del paquete `app`.**
 
 Las pruebas verifican:
 
 - Respuestas HTTP de la página principal.
-- Contenido de las respuestas.
 - Métodos HTTP permitidos y no permitidos.
 - Respuestas HTTP 404 y 405.
 - Funcionamiento del método HEAD.
 - Tipos de contenido HTML y JSON.
-- Funcionamiento del endpoint `/health`.
+- Endpoints `/health` y `/ready`.
+- Identificador único de petición.
 - Configuraciones base, testing y development.
 - Aplicación de configuraciones personalizadas.
 - Gestión de excepciones inesperadas.
 - Respuestas HTTP 500.
+- Configuración del logging JSON por stdout.
+- Configuración del logging tradicional mediante RotatingFileHandler.
 
 La cobertura del 100 % corresponde a las instrucciones ejecutables del código actual. No implica que se hayan probado todos los escenarios posibles.
 
 ## 🦄 Servidor WSGI con Gunicorn
 
-El proyecto incorpora **Gunicorn** como servidor WSGI para ejecutar la aplicación Flask mediante un servidor independiente del servidor de desarrollo integrado.
+Gunicorn se utiliza como servidor WSGI para ejecutar la aplicación Flask mediante un servidor independiente del servidor de desarrollo integrado.
 
-### Instalación
+### Despliegue tradicional
 
-Gunicorn está incluido en `requirements.txt`.
+La configuración se encuentra en:
 
-Para instalar las dependencias:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-### Configuración
-
-Los parámetros del servidor se encuentran en `gunicorn.conf.py`:
-
-```python
-bind = "127.0.0.1:8000"
-
-workers = 2
-
-accesslog = "logs/gunicorn-access.log"
-errorlog = "logs/gunicorn-error.log"
-
-loglevel = "info"
-
-capture_output = True
+```text
+gunicorn.conf.py
 ```
 
 Características principales:
 
 - Dos procesos worker.
-- Escucha en la interfaz local `127.0.0.1`.
-- Puerto 8000.
+- Escucha en `127.0.0.1:8000`.
 - Registro independiente de accesos y errores.
 - Captura de la salida estándar y de errores.
 
-### Ejecución manual
+Ejecución manual:
 
 ```bash
 gunicorn --config gunicorn.conf.py "app:create_app()"
 ```
 
-Gunicorn utiliza la Application Factory de Flask para crear la instancia de la aplicación.
+### Despliegue Docker
+
+Se utiliza una configuración independiente:
+
+```text
+gunicorn.docker.conf.py
+```
+
+Gunicorn escucha en `0.0.0.0:8000` dentro del contenedor, permitiendo que Nginx acceda a la aplicación a través de la red interna de Docker.
 
 ## 🌐 Nginx como proxy inverso
 
-Se ha instalado y configurado **Nginx** como servidor web y proxy inverso.
+Nginx actúa como servidor web y proxy inverso.
 
-La arquitectura permite recibir las peticiones HTTP en el puerto 80 y reenviarlas a Gunicorn, que escucha en el puerto 8000 de la interfaz local.
+Se han implementado dos configuraciones:
 
-### Configuración
+- Instalación tradicional en el sistema Linux.
+- Contenedor Nginx independiente dentro de Docker Compose.
 
-Archivo:
+### Nginx tradicional
+
+La configuración del sistema se encuentra en:
 
 ```text
 /etc/nginx/sites-available/cloud-middleware-lab
 ```
 
-Configuración aplicada:
+Recibe peticiones HTTP en el puerto 80 y las reenvía a Gunicorn en `127.0.0.1:8000`.
 
-```nginx
-server {
-    listen 80;
-    server_name localhost;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-El sitio se habilita mediante un enlace simbólico en:
-
-```text
-/etc/nginx/sites-enabled/
-```
-
-### Validación
-
-Comprobar la sintaxis:
+Validación:
 
 ```bash
 sudo nginx -t
-```
-
-Recargar la configuración:
-
-```bash
 sudo systemctl reload nginx
 ```
 
-Comprobar el endpoint:
+### Nginx en Docker
 
-```bash
-curl -i http://127.0.0.1/health
+La configuración se encuentra en:
+
+```text
+docker/nginx/default.conf
 ```
 
-La respuesta esperada es HTTP 200:
+Características:
 
-```json
-{
-  "status": "ok"
-}
-```
+- Imagen `nginxinc/nginx-unprivileged:alpine`.
+- Ejecución con usuario no privilegiado.
+- Puerto interno 8080.
+- Comunicación con Flask mediante el nombre de servicio `app`.
+- Logs de acceso y errores enviados a stdout y stderr.
+- Configuración montada en modo solo lectura.
 
 ## ⚙️ Gestión del servicio con systemd
 
-Se ha configurado un servicio de **systemd** para gestionar Gunicorn como un servicio del sistema.
+Se ha configurado un servicio de systemd para gestionar Gunicorn como servicio del sistema.
 
 Archivo:
 
@@ -353,230 +386,324 @@ Archivo:
 /etc/systemd/system/cloud-middleware-lab.service
 ```
 
-Configuración principal:
-
-```ini
-[Unit]
-Description=Cloud Middleware Lab - Gunicorn
-After=network.target
-
-[Service]
-User=cloudlab
-Group=cloudlab
-WorkingDirectory=/home/mario/proyectos/cloud-middleware-devops
-
-ExecStart=/home/mario/proyectos/cloud-middleware-devops/.venv/bin/gunicorn --config /home/mario/proyectos/cloud-middleware-devops/gunicorn.conf.py "app:create_app()"
-
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
+El servicio utiliza un usuario dedicado llamado `cloudlab`.
 
 ### Gestión del servicio
 
-Recargar la configuración de systemd:
-
 ```bash
+# Recargar configuración
 sudo systemctl daemon-reload
-```
 
-Iniciar y habilitar el servicio:
-
-```bash
+# Iniciar y habilitar
 sudo systemctl enable --now cloud-middleware-lab
-```
 
-Consultar su estado:
-
-```bash
+# Consultar estado
 sudo systemctl status cloud-middleware-lab
-```
 
-Reiniciar:
-
-```bash
+# Reiniciar
 sudo systemctl restart cloud-middleware-lab
-```
 
-Detener:
-
-```bash
+# Detener
 sudo systemctl stop cloud-middleware-lab
-```
 
-Consultar los registros:
-
-```bash
+# Consultar registros
 sudo journalctl -u cloud-middleware-lab
 ```
 
 El servicio está configurado para iniciarse automáticamente con el sistema y reiniciarse si se produce un fallo.
 
-## 🔐 Seguridad y permisos
+## 🔐 Seguridad y endurecimiento
 
-Se han aplicado medidas de aislamiento y endurecimiento del servicio para reducir los privilegios y limitar el acceso a los recursos del sistema.
+Se han aplicado medidas de seguridad tanto en el servicio tradicional como en los contenedores Docker.
 
-### Usuario dedicado
+### Seguridad en systemd
 
-La aplicación se ejecuta mediante un usuario específico:
+La aplicación tradicional se ejecuta mediante el usuario específico `cloudlab`, evitando utilizar root para ejecutar Gunicorn.
 
-```text
-cloudlab
-```
-
-Este usuario evita ejecutar Gunicorn con la cuenta personal o con privilegios de root.
-
-Se han configurado los permisos necesarios para que el servicio pueda:
-
-- Leer el código de la aplicación.
-- Acceder a la configuración de Gunicorn.
-- Ejecutar el binario del entorno virtual.
-- Escribir en el directorio de registros.
-
-### Endurecimiento de systemd
-
-Se han aplicado directivas de seguridad adicionales mediante un archivo de configuración complementario:
+Se han aplicado directivas de endurecimiento mediante:
 
 ```text
 /etc/systemd/system/cloud-middleware-lab.service.d/override.conf
 ```
 
-Entre las medidas aplicadas se encuentran:
+Entre las medidas implementadas:
 
-- `NoNewPrivileges`: impide adquirir nuevos privilegios.
-- `UMask`: controla los permisos predeterminados de los archivos creados por el servicio.
-- `PrivateTmp`: proporciona un directorio temporal aislado.
-- `ProtectSystem=full`: restringe la escritura en partes del sistema de archivos.
-- `ProtectKernelTunables`: protege los parámetros del kernel.
-- `ProtectKernelModules`: impide cargar módulos del kernel.
-- `ProtectKernelLogs`: restringe el acceso a los registros del kernel.
-- `ProtectControlGroups`: protege la jerarquía de grupos de control.
-- `ProtectHostname`: impide modificar el nombre del sistema.
-- `ProtectClock`: impide modificar el reloj del sistema.
-- `RestrictSUIDSGID`: restringe la creación de archivos SUID/SGID.
-- `LockPersonality`: restringe los cambios de personalidad del proceso.
-- `PrivateDevices`: limita el acceso a dispositivos.
-- `ProtectProc`: restringe la visibilidad del árbol de procesos.
-- `ProcSubset`: limita la información disponible en `/proc`.
-- `RestrictNamespaces`: limita la creación de espacios de nombres.
-- `RestrictRealtime`: restringe el acceso a la planificación en tiempo real.
-- `SystemCallArchitectures`: limita las arquitecturas de llamadas al sistema permitidas.
-- `CapabilityBoundingSet`: elimina las capacidades adicionales del servicio.
-- `AmbientCapabilities`: no concede capacidades adicionales.
-- `RestrictAddressFamilies`: limita las familias de direcciones de red permitidas.
-- `MemoryDenyWriteExecute`: restringe la creación de memoria ejecutable y escribible simultáneamente.
+- `NoNewPrivileges`.
+- `UMask`.
+- `PrivateTmp`.
+- `ProtectSystem`.
+- `ProtectKernelTunables`.
+- `ProtectKernelModules`.
+- `ProtectKernelLogs`.
+- `ProtectControlGroups`.
+- `ProtectHostname`.
+- `ProtectClock`.
+- `RestrictSUIDSGID`.
+- `LockPersonality`.
+- `PrivateDevices`.
+- `ProtectProc`.
+- `ProcSubset`.
+- `RestrictNamespaces`.
+- `RestrictRealtime`.
+- `SystemCallArchitectures`.
+- `CapabilityBoundingSet`.
+- `AmbientCapabilities`.
+- `RestrictAddressFamilies`.
+- `MemoryDenyWriteExecute`.
 
-### Evaluación de seguridad
-
-La configuración se ha evaluado mediante:
+Evaluación:
 
 ```bash
 sudo systemd-analyze security cloud-middleware-lab.service
 ```
 
-Resultado obtenido:
+Resultado obtenido: **3.1 OK**.
 
-- Nivel de exposición: **3.1 OK**.
+Esta puntuación corresponde a la evaluación de systemd y no constituye una auditoría completa de seguridad.
 
-Esta puntuación corresponde a la evaluación de systemd y no constituye una auditoría completa de seguridad de la aplicación o del sistema.
+### Seguridad en Docker
 
-## 🔄 Arquitectura del despliegue
+Los contenedores se han configurado aplicando medidas de reducción de privilegios y aislamiento.
 
-El flujo de una petición HTTP es el siguiente:
+**Aplicación Flask:**
 
-```text
-          CLIENTE
-             |
-             | HTTP :80
-             v
-       +-----------+
-       |   NGINX   |
-       |  Proxy    |
-       |  inverso  |
-       +-----------+
-             |
-             | HTTP
-             | 127.0.0.1:8000
-             v
-       +-----------+
-       | GUNICORN  |
-       | WSGI      |
-       | 2 workers |
-       +-----------+
-             |
-             v
-       +-----------+
-       |   FLASK   |
-       | Aplicación|
-       +-----------+
-             |
-             v
-       +-----------+
-       |  ENDPOINT |
-       | /health   |
-       +-----------+
+- Usuario no privilegiado `appuser`.
+- Sistema de archivos raíz de solo lectura.
+- Capacidades Linux eliminadas mediante `cap_drop: ALL`.
+- Protección `no-new-privileges`.
+- Directorio temporal limitado mediante tmpfs.
+- Límite de memoria de 256 MB.
+- Límite de CPU de 1 núcleo.
+- Límite de 100 procesos.
+- Sin publicación directa de puertos en el host.
+
+**Nginx:**
+
+- Imagen basada en `nginx-unprivileged`.
+- Usuario no privilegiado.
+- Sistema de archivos raíz de solo lectura.
+- Capacidades Linux eliminadas mediante `cap_drop: ALL`.
+- Protección `no-new-privileges`.
+- Directorio temporal limitado mediante tmpfs.
+- Límite de memoria de 64 MB.
+- Límite de CPU de 0,5 núcleos.
+- Límite de 50 procesos.
+- Puerto publicado exclusivamente en `127.0.0.1:8080`.
+
+Estas medidas reducen la superficie de ataque y limitan el impacto potencial de una ejecución comprometida.
+
+## 🐳 Contenerización con Docker
+
+La aplicación se ha contenerizado mediante un Dockerfile basado en:
+
+```dockerfile
+FROM python:3.12-slim
 ```
 
-**Responsabilidades de cada componente:**
+### Características de la imagen
 
-| Componente | Responsabilidad |
-|---|---|
-| Nginx | Recepción de peticiones HTTP y proxy inverso |
-| Gunicorn | Servidor WSGI y gestión de procesos worker |
-| Flask | Lógica y rutas de la aplicación |
-| systemd | Gestión, supervisión y arranque del servicio |
-| Logging | Registro de actividad y errores |
+- Imagen base Python slim.
+- Instalación de dependencias mediante `requirements.txt`.
+- Ejecución con usuario no privilegiado.
+- Gunicorn como servidor WSGI.
+- Logging estructurado por stdout.
+- Healthcheck mediante el endpoint `/health`.
+- Exclusión de archivos innecesarios mediante `.dockerignore`.
 
-El despliegue se ha validado tanto mediante una conexión directa a Gunicorn como a través de Nginx.
+### Construir la imagen
+
+```bash
+sudo docker build -t cloud-middleware-lab:latest .
+```
+
+### Ejecutar Docker Compose
+
+El proyecto utiliza Docker Compose para gestionar los servicios Flask y Nginx.
+
+Levantar los servicios:
+
+```bash
+sudo docker compose up -d --build
+```
+
+Consultar el estado:
+
+```bash
+sudo docker compose ps
+```
+
+Consultar los registros:
+
+```bash
+sudo docker compose logs -f
+```
+
+Consultar los registros de Flask:
+
+```bash
+sudo docker compose logs -f app
+```
+
+Consultar los registros de Nginx:
+
+```bash
+sudo docker compose logs -f nginx
+```
+
+Detener los servicios:
+
+```bash
+sudo docker compose down
+```
+
+### Acceso a la aplicación
+
+Una vez levantados los contenedores:
+
+```text
+http://127.0.0.1:8080/
+```
+
+Comprobar los endpoints:
+
+```bash
+curl -i http://127.0.0.1:8080/health
+curl -i http://127.0.0.1:8080/ready
+```
+
+Los servicios se comunican mediante una red bridge de Docker.
+
+Nginx publica el puerto 8080 únicamente en la interfaz local del host, mientras que Flask permanece accesible solo dentro de la red interna de los contenedores.
+
+## 🔄 Integración continua con GitHub Actions
+
+El repositorio incorpora un pipeline de integración continua mediante GitHub Actions.
+
+Archivo:
+
+```text
+.github/workflows/ci.yml
+```
+
+El workflow se ejecuta cuando se producen:
+
+- Push a la rama `main`.
+- Pull requests dirigidas a `main`.
+
+### Fases del pipeline
+
+```text
+       PUSH / PULL REQUEST
+                |
+                v
+       +------------------+
+       |     CHECKOUT     |
+       | Descargar código|
+       +------------------+
+                |
+                v
+       +------------------+
+       |  SETUP PYTHON    |
+       |     Python 3.12  |
+       +------------------+
+                |
+                v
+       +------------------+
+       |   DEPENDENCIAS   |
+       | Instalar paquetes|
+       +------------------+
+                |
+                v
+       +------------------+
+       |      PYTEST      |
+       | 19 pruebas       |
+       | Cobertura 100 %  |
+       +------------------+
+                |
+                v
+       +------------------+
+       |   DOCKER BUILD   |
+       | Construir imagen |
+       +------------------+
+                |
+                v
+          CI COMPLETADA
+```
+
+### Comprobaciones implementadas
+
+1. Descarga del repositorio.
+2. Preparación de Python 3.12.
+3. Instalación de dependencias.
+4. Ejecución de pruebas automatizadas.
+5. Validación de cobertura mínima del 100 %.
+6. Construcción de la imagen Docker.
+
+### Resultado validado
+
+Primera ejecución satisfactoria:
+
+- Commit: `77b98be`.
+- Workflow: `Cloud Middleware Lab CI`.
+- Resultado: Success.
+- Duración aproximada: 18 segundos.
+
+El pipeline valida automáticamente las pruebas y la construcción de la imagen.
+
+**Nota:** actualmente se ha implementado integración continua (CI). No se ha implementado todavía un proceso de despliegue continuo (CD).
 
 ## 📊 Estado actual del proyecto
 
 | Área | Estado |
 |---|---|
 | Entorno Linux y Python | ✅ Completado |
-| Entorno virtual | ✅ Completado |
 | Aplicación Flask | ✅ Completado |
 | Application Factory y Blueprints | ✅ Completado |
 | Configuración por entornos | ✅ Completado |
-| Endpoint Health Check | ✅ Completado |
-| Logging y rotación de registros | ✅ Completado |
+| Endpoints Health y Readiness | ✅ Completado |
+| Logging estructurado JSON | ✅ Completado |
+| Identificación de peticiones | ✅ Completado |
 | Gestión global de excepciones | ✅ Completado |
 | Pruebas automatizadas | ✅ Completado |
-| Servidor WSGI Gunicorn | ✅ Completado |
-| Proxy inverso Nginx | ✅ Completado |
+| Cobertura del 100 % | ✅ Completado |
+| Gunicorn | ✅ Completado |
+| Nginx como proxy inverso | ✅ Completado |
 | Servicio systemd | ✅ Completado |
-| Usuario dedicado | ✅ Completado |
 | Endurecimiento de systemd | ✅ Completado |
-| Validación del despliegue | ✅ Completado |
+| Dockerfile | ✅ Completado |
+| Docker Compose | ✅ Completado |
+| Endurecimiento de contenedores | ✅ Completado |
+| GitHub Actions CI | ✅ Completado |
+| Validación del pipeline remoto | ✅ Completado |
 
 ## 🗺️ Hoja de ruta
 
-El proyecto continuará evolucionando progresivamente:
+El laboratorio continuará evolucionando de forma progresiva.
 
 | Área | Estado |
 |---|---|
-| Entorno Linux y Python | ✅ Completado |
+| Administración Linux | ✅ Completado |
 | Aplicación Flask modular | ✅ Completado |
-| Pruebas automatizadas y cobertura | ✅ Completado |
-| Logging y gestión de excepciones | ✅ Completado |
-| Gunicorn como servidor WSGI | ✅ Completado |
-| Nginx como proxy inverso | ✅ Completado |
+| Logging y gestión de errores | ✅ Completado |
+| Pruebas automatizadas | ✅ Completado |
+| Gunicorn y Nginx | ✅ Completado |
 | Gestión mediante systemd | ✅ Completado |
 | Endurecimiento del servicio | ✅ Completado |
-| Logging estructurado en JSON | ⏳ Pendiente |
+| Contenerización con Docker | ✅ Completado |
+| Docker Compose | ✅ Completado |
+| Integración continua (CI) | ✅ Completado |
 | Mejoras de monitorización | ⏳ Pendiente |
-| Contenerización con Docker | ⏳ Pendiente |
-| Integración y despliegue continuo (CI/CD) | ⏳ Pendiente |
 | Automatización con Bash y Python | ⏳ Pendiente |
+| Despliegue continuo (CD) | 🔜 Futuro |
 | Despliegue en cloud | 🔜 Futuro |
 
 ## 📚 Objetivo profesional
 
 Este laboratorio forma parte de un itinerario práctico de aprendizaje orientado a la administración de sistemas, infraestructura IT, middleware y tecnologías DevOps.
 
-El objetivo es documentar y demostrar conocimientos mediante implementaciones funcionales, configuración de servicios, resolución de problemas y aplicación de buenas prácticas.
+El objetivo es demostrar conocimientos mediante implementaciones funcionales, configuración de servicios, resolución de problemas, automatización, contenerización y aplicación de buenas prácticas de seguridad.
+
+El repositorio sirve como portfolio técnico para documentar el trabajo realizado y facilitar su evaluación por parte de profesionales y reclutadores del sector IT.
 
 ## 📄 Licencia
 

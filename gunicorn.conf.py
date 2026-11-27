@@ -10,3 +10,6 @@ errorlog = "logs/gunicorn-error.log"
 loglevel = "info"
 
 capture_output = True
+
+# Desactivar interfaz de control opcional
+control_socket_disable = True
